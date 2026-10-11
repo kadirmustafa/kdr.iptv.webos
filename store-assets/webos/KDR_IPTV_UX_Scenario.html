@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KDR IPTV - webOS UX Scenario</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    background-color: #ffffff;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+  }
+  .page {
+    page-break-after: always;
+    padding-bottom: 20px;
+  }
+  .page:last-child {
+    page-break-after: avoid;
+  }
+  .header {
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 22px;
+    color: #0f172a;
+  }
+  .header .badge {
+    background: #0284c7;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  h2 {
+    font-size: 16px;
+    color: #0369a1;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 6px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+  }
+  h3 {
+    font-size: 14px;
+    color: #334155;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    margin-bottom: 16px;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 10px;
+    text-align: left;
+    font-size: 12px;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 600;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .card strong {
+    color: #0f172a;
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .screenshot {
+    width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #0f172a;
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+  .step-box {
+    background: #f0fdf4;
+    border-left: 4px solid #16a34a;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .note-box {
+    background: #eff6ff;
+    border-left: 4px solid #0284c7;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 10px;
+    color: #94a3b8;
+    text-align: center;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>LG webOS QA Test UX Scenario</h1>
+      <div style="color: #64748b; font-size: 12px;">KDR IPTV: Smart Stream Player</div>
+    </div>
+    <span class="badge">Application QA Document</span>
+  </div>
+
+  <h2>1. General Application Information</h2>
+  <div class="info-grid">
+    <div class="card">
+      <strong>Application Title</strong>
+      KDR IPTV: Smart Stream Player
+    </div>
+    <div class="card">
+      <strong>Application ID</strong>
+      com.kdr.iptv
+    </div>
+    <div class="card">
+      <strong>Version</strong>
+      1.0.4
+    </div>
+    <div class="card">
+      <strong>Graphic Resolution</strong>
+      1920 x 1080 (Full HD / 4K UHD Compatible)
+    </div>
+    <div class="card">
+      <strong>Service Category</strong>
+      Entertainment / Media & Video
+    </div>
+    <div class="card">
+      <strong>Authentication / Login</strong>
+      None (Not Applicable - Open Access)
+    </div>
+    <div class="card">
+      <strong>In-App Billing / Subscriptions</strong>
+      None (Free Media Player)
+    </div>
+    <div class="card">
+      <strong>Cloud Pairing Portal</strong>
+      https://pairiptv.ozturk.app
+    </div>
+  </div>
+
+  <h2>2. Remote Controller Mapping</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Key / Input</th>
+        <th style="width: 40%;">Function on Dashboard</th>
+        <th style="width: 35%;">Function in Video Player</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Arrow Keys (Up / Down)</strong></td>
+        <td>Navigate channel list / category items</td>
+        <td>Switch previous / next channel</td>
+      </tr>
+      <tr>
+        <td><strong>Arrow Keys (Left / Right)</strong></td>
+        <td>Switch category tabs (Live, Movies, Series, Settings)</td>
+        <td>Seek forward / rewind video (VOD)</td>
+      </tr>
+      <tr>
+        <td><strong>OK / Enter Key</strong></td>
+        <td>Select channel, start playback, confirm modal</td>
+        <td>Toggle On-Screen Display (OSD controls)</td>
+      </tr>
+      <tr>
+        <td><strong>Back / Return Key</strong></td>
+        <td>Exit dialog, go back to top category bar, exit app</td>
+        <td>Close video player, return to Dashboard</td>
+      </tr>
+      <tr>
+        <td><strong>Magic Remote Pointer</strong></td>
+        <td>Hover over cards, click channel, scroll list</td>
+        <td>Click play/pause, audio track, subtitle, PIP</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Test Account & Prerequisites</h2>
+  <div class="note-box">
+    <strong>No credentials required:</strong> The app does not require username, password, or paid subscription. A pre-loaded default demonstration playlist with public streaming channels is included out of the box so QA testers can immediately begin functional testing.
+  </div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Key UX Scenarios & Testing Flow</h1>
+      <div style="color: #64748b; font-size: 12px;">Scenario 1 & 2: App Launch & Dashboard Navigation</div>
+    </div>
+    <span class="badge">Page 2 / 3</span>
+  </div>
+
+  <h2>Scenario 1: App Launch & Splash Screen</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> Launch <strong>com.kdr.iptv</strong> from the webOS Home Launcher.<br>
+    <strong>Expected Result:</strong> The branded splash screen displays smoothly, initializing network cache and fetching the default stream catalog within 1-2 seconds.
+  </div>
+
+  <h2>Scenario 2: Dashboard & Channel Browsing</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> Using the remote D-Pad, navigate through the top categories: <em>Live TV</em>, <em>Movies</em>, <em>Series</em>, and <em>Favorites</em>.<br>
+    <strong>Step 2:</strong> Press Down Arrow to focus on the channel grid. Use Left/Right/Up/Down to browse channels.<br>
+    <strong>Step 3:</strong> Notice the Live EPG program information and channel logo displayed for the focused channel.<br>
+    <strong>Expected Result:</strong> Focus transitions smoothly with clear visual highlighting. Channel lists load without freezing.
+  </div>
+  <img src="screenshot_1_dashboard_1920x1080.jpg" class="screenshot" alt="Dashboard">
+
+  <h2>Scenario 3: Video Playback & Player OSD Controls</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> Press <strong>OK/Enter</strong> on any channel in the dashboard.<br>
+    <strong>Step 2:</strong> Video begins playing in full screen with native HLS streaming.<br>
+    <strong>Step 3:</strong> Press <strong>OK/Enter</strong> during playback to toggle the Player OSD bar (shows Channel Name, EPG title, Audio Track selector, Subtitles, and Multi-Screen PIP button).<br>
+    <strong>Step 4:</strong> Press <strong>Back</strong> button to close the player and return to the channel catalog.
+  </div>
+  <img src="screenshot_2_player_1920x1080.jpg" class="screenshot" alt="Player">
+</div>
+
+<!-- PAGE 3 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Advanced Features & Verification</h1>
+      <div style="color: #64748b; font-size: 12px;">Scenario 4 & 5: Cloud Pairing, Settings & Verification</div>
+    </div>
+    <span class="badge">Page 3 / 3</span>
+  </div>
+
+  <h2>Scenario 4: Cloud Pairing & Playlist Management</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> In the TV app, click <strong>"Manage Playlists"</strong> or <strong>"Pair Device"</strong>. A 6-character connection code (e.g. <code>AB12CD</code>) and QR code appear on screen.<br>
+    <strong>Step 2:</strong> Open <code>https://pairiptv.ozturk.app</code> on any mobile browser or computer.<br>
+    <strong>Step 3:</strong> Enter the 6-character code and paste any custom M3U/M3U8 link or Xtream API credentials, then click <em>"Send to TV"</em>.<br>
+    <strong>Expected Result:</strong> The TV screen instantly detects the new playlist via WebSocket, automatically reloads the catalog, and confirms successful sync.
+  </div>
+  <img src="screenshot_3_playlist_manager_1920x1080.jpg" class="screenshot" alt="Playlist Manager">
+
+  <h2>Scenario 5: Multi-Screen PIP (Picture-in-Picture)</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> During live TV playback, bring up the OSD and select the <strong>PIP</strong> icon.<br>
+    <strong>Step 2:</strong> Select a secondary channel from the mini-list.<br>
+    <strong>Expected Result:</strong> Secondary channel plays in an overlay thumbnail in the corner while main channel continues playing uninterrupted.
+  </div>
+
+  <h2>Scenario 6: Settings, Privacy Policy & Exit</h2>
+  <div class="step-box">
+    <strong>Step 1:</strong> Navigate to the <strong>Settings</strong> tab.<br>
+    <strong>Step 2:</strong> Verify Device ID, Version <code>1.0.4</code>, and click <strong>"Privacy Policy"</strong> (opens <code>https://pairiptv.ozturk.app/privacy</code>).<br>
+    <strong>Step 3:</strong> Press the TV <strong>Back/Exit</strong> button to smoothly exit the application.
+  </div>
+
+  <h2>4. Summary for QA Reviewers</h2>
+  <div class="note-box">
+    <strong>Compliance & Safety:</strong> KDR IPTV complies strictly with LG webOS TV guidelines. The app operates as an independent media player, contains zero copyright-infringing content, requires no payment or login, and supports both standard and LG Magic Remote controllers.
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+services:
+  kdr-iptv-portal:
+    image: ghcr.io/kadirmustafa/kdr.iptv-webportal:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kdr-iptv-web-portal
+    ports:
+      - "8088:3001"
+    restart: unless-stopped

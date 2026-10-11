@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KDR IPTV - TV Eşleştirme ve Çalma Listesi Kurulum Sihirbazı</title>
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0PSD3ZEWFQ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0PSD3ZEWFQ', {
+      send_page_view: true
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --card: #111827;
+      --card-inner: #0b0f19;
+      --border: #1f293d;
+      --accent: #00d2ff;
+      --accent-gradient: linear-gradient(135deg, #00d2ff 0%, #0070f3 100%);
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .wizard-container {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 36px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    
+    /* Wizard Steps Bar */
+    .steps-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      position: relative;
+    }
+    .steps-indicator::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 36px;
+      right: 36px;
+      height: 2px;
+      background: var(--border);
+      z-index: 1;
+    }
+    .step-progress-line {
+      position: absolute;
+      top: 18px;
+      left: 36px;
+      height: 2px;
+      background: var(--accent);
+      z-index: 2;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .step-item {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .step-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #151d30;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+    }
+    .step-item.active .step-circle {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+    }
+    .step-item.completed .step-circle {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+    .step-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+    .step-item.active .step-label {
+      color: var(--accent);
+    }
+
+    /* Content Area */
+    .step-content {
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+    .step-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .step-header h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .step-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 15px 18px;
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.15);
+    }
+    .code-input {
+      text-transform: uppercase;
+      font-family: monospace;
+      letter-spacing: 4px;
+      font-size: 24px;
+      text-align: center;
+      font-weight: 800;
+      color: var(--accent);
+      background: #090e1a;
+      border: 2px dashed rgba(0, 210, 255, 0.3);
+    }
+
+    /* Selection Cards (Method Selector) */
+    .method-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .method-card {
+      background: var(--card-inner);
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .method-card:hover {
+      border-color: rgba(0, 210, 255, 0.4);
+    }
+    .method-card.selected {
+      border-color: var(--accent);
+      background: rgba(0, 210, 255, 0.05);
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);
+    }
+    .method-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .method-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .method-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* File upload button */
+    .file-dropzone {
+      border: 2px dashed var(--border);
+      background: var(--card-inner);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-dropzone:hover {
+      border-color: var(--accent);
+    }
+
+    /* Group Editor Box */
+    .group-filter-box {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .group-filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .btn-small {
+      font-size: 12px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-small:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .group-scroll {
+      max-height: 250px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #111827;
+      border-radius: 12px;
+    }
+    .group-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .group-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    /* Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #374151; transition: .2s; border-radius: 22px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background-color: white; transition: .2s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Summary Card */
+    .summary-card {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .summary-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .summary-label {
+      color: var(--text-muted);
+    }
+    .summary-value {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Navigation Buttons */
+    .wizard-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+      gap: 12px;
+    }
+    .btn-prev {
+      padding: 14px 24px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-prev:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+    .btn-next {
+      flex: 1;
+      padding: 15px 24px;
+      background: var(--accent-gradient);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(0, 210, 255, 0.25);
+      transition: all 0.2s;
+    }
+    .btn-next:hover { opacity: 0.95; }
+    .btn-next:active { transform: scale(0.99); }
+
+    .status-msg {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+      line-height: 1.5;
+    }
+    .status-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--success);
+      color: #34d399;
+    }
+
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <div class="wizard-container">
+    
+    <!-- Steps Indicator -->
+    <div class="steps-indicator">
+      <div class="step-progress-line" id="progress-line"></div>
+      
+      <div class="step-item active" id="step-node-1" onclick="goToStep(1)">
+        <div class="step-circle">1</div>
+        <span class="step-label">TV Eşleştir</span>
+      </div>
+
+      <div class="step-item" id="step-node-2" onclick="goToStep(2)">
+        <div class="step-circle">2</div>
+        <span class="step-label">Kaynak Seç</span>
+      </div>
+
+      <div class="step-item" id="step-node-3" onclick="goToStep(3)">
+        <div class="step-circle">3</div>
+        <span class="step-label">Kategoriler</span>
+      </div>
+
+      <div class="step-item" id="step-node-4" onclick="goToStep(4)">
+        <div class="step-circle">4</div>
+        <span class="step-label">Tamamla</span>
+      </div>
+    </div>
+
+    <!-- WIZARD STEP 1: TV EŞLEŞTİRME -->
+    <div class="step-content active" id="step-1">
+      <div class="step-header">
+        <h2>LG Televizyonunuzu Eşleştirin</h2>
+        <p>Televizyon ekranında açılan KDR IPTV uygulamasındaki 6 haneli eşleştirme kodunu girin.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="tv-code">TV Eşleştirme Kodu</label>
+        <input type="text" id="tv-code" class="code-input" placeholder="LG-XXXX" maxlength="8" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="playlist-name">Çalma Listesi Adı (Opsiyonel)</label>
+        <input type="text" id="playlist-name" placeholder="Örn: Ev / Salondaki TV">
+      </div>
+    </div>
+
+    <!-- WIZARD STEP 2: KAYNAK SEÇİMİ (M3U / XTREAM) -->
+    <div class="step-content" id="step-2">
+      <div class="step-header">
+        <h2>Çalma Listesi Kaynağı</h2>
+        <p>IPTV listenizi nasıl yüklemek istersiniz?</p>
+      </div>
+
+      <div class="method-cards">
+        <div class="method-card selected" id="method-m3u" onclick="selectMethod('m3u')">
+          <div class="method-icon">🔗</div>
+          <div class="method-title">M3U Linki / Dosyası</div>
+          <div class="method-desc">M3U URL veya bilgisayarınızdan dosya</div>
+        </div>
+        <div class="method-card" id="method-xtream" onclick="selectMethod('xtream')">
+          <div class="method-icon">⚡</div>
+          <div class="method-title">Xtream Codes API</div>
+          <div class="method-desc">Kullanıcı adı, şifre ve sunucu adresi</div>
+        </div>
+      </div>
+
+      <!-- M3U Inputs -->
+      <div id="m3u-container">
+        <div class="form-group">
+          <label for="m3u-url">M3U / M3U8 Web Bağlantısı</label>
+          <input type="url" id="m3u-url" placeholder="http://sunucu.com/get.php?username=...&type=m3u">
+        </div>
+
+        <div class="form-group">
+          <label>veya Bilgisayardan / Telefondan M3U Dosyası Seç</label>
+          <div class="file-dropzone" onclick="document.getElementById('m3u-file').click()">
+            <div style="font-size: 24px; margin-bottom: 6px;">📁</div>
+            <div style="font-weight: 700; font-size: 14px;" id="file-status">Dosya Seçmek İçin Tıklayın</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">.m3u veya .m3u8 dosyaları desteklenir</div>
+            <input type="file" id="m3u-file" accept=".m3u,.m3u8,.txt" style="display: none;" onchange="handleFileSelect(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Xtream Inputs -->
+      <div id="xtream-container" style="display: none;">
+        <div class="form-group">
+          <label for="xtream-server">Sunucu URL Adresi</label>
+          <input type="url" id="xtream-server" placeholder="http://sunucu.com:8080">
+        </div>
+        <div class="form-group">
+          <label for="xtream-user">Kullanıcı Adı</label>
+          <input type="text" id="xtream-user" placeholder="Kullanıcı adınız">
+        </div>
+        <div class="form-group">
+          <label for="xtream-pass">Şifre</label>
+          <input type="password" id="xtream-pass" placeholder="Şifreniz">
+        </div>
+      </div>
+    </div>
+
+    <!-- WIZARD STEP 3: KATEGORİ & GRUP DÜZENLEME (AÇ / KAPA) -->
+    <div class="step-content" id="step-3">
+      <div class="step-header">
+        <h2>Kategorileri Düzenleyin</h2>
+        <p>İstemediğiniz grupları kapatın. Televizyonunuza sadece açık olan kanallar aktarılır.</p>
+      </div>
+
+      <div class="group-filter-box">
+        <div class="group-filter-header">
+          <div>
+            <span style="font-weight: 800; font-size: 15px;" id="group-stats">0 Kategori Yüklendi</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-small" onclick="toggleAllGroups(true)">Tümünü Aç</button>
+            <button type="button" class="btn-small" onclick="toggleAllGroups(false)">Tümünü Kapat</button>
+          </div>
+        </div>
+
+        <div class="group-scroll" id="group-list">
+          <!-- Gruplar dinamik eklenir -->
+        </div>
+      </div>
+    </div>
+
+    <!-- WIZARD STEP 4: ÖZET VE GÖNDERME -->
+    <div class="step-content" id="step-4">
+      <div class="step-header">
+        <h2>Kurulum Özeti</h2>
+        <p>Bilgileri kontrol edip listenizi LG Smart TV'nize tek tıkla gönderin.</p>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-row">
+          <span class="summary-label">Hedef LG TV Kodu:</span>
+          <span class="summary-value" id="summary-tv-code" style="color: var(--accent); font-family: monospace;">-</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Çalma Listesi Adı:</span>
+          <span class="summary-value" id="summary-name">Kişisel IPTV Listem</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Bağlantı Türü:</span>
+          <span class="summary-value" id="summary-type">M3U Listesi</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Aktif Kategori Sayısı:</span>
+          <span class="summary-value" id="summary-groups">-</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Aktarılacak Toplam Kanal:</span>
+          <span class="summary-value" id="summary-channels" style="color: #34d399;">-</span>
+        </div>
+      </div>
+
+      <div id="status-box" class="status-msg"></div>
+    </div>
+
+    <!-- WIZARD NAVİGASYON BUTONLARI -->
+    <div class="wizard-nav">
+      <button type="button" class="btn-prev" id="btn-prev" onclick="prevStep()" style="display: none;">← Geri</button>
+      <button type="button" class="btn-next" id="btn-next" onclick="nextStep()">Devam Et →</button>
+    </div>
+
+    <div class="footer">
+      <p>KDR IPTV yalnızca kişisel medya oynatıcıdır. Telifli içerik barındırmaz.</p>
+      <p style="margin-top: 6px;"><a href="/privacy" style="color: var(--accent); text-decoration: none; font-weight: 600;">🛡️ Gizlilik Politikası & Yardım Kılavuzu</a></p>
+    </div>
+
+  </div>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 4;
+    let selectedMethodType = 'm3u';
+    let rawM3U = '';
+    let parsedChannels = [];
+    let groupMap = {}; // { groupName: { enabled: true, count: 10 } }
+
+    function updateWizardUI() {
+      // Progress line
+      const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+      document.getElementById('progress-line').style.width = `${progressPercent}%`;
+
+      // Step indicators
+      for (let i = 1; i <= totalSteps; i++) {
+        const node = document.getElementById(`step-node-${i}`);
+        node.classList.remove('active', 'completed');
+        if (i === currentStep) {
+          node.classList.add('active');
+        } else if (i < currentStep) {
+          node.classList.add('completed');
+        }
+
+        const content = document.getElementById(`step-${i}`);
+        content.classList.toggle('active', i === currentStep);
+      }
+
+      // Prev Button Visibility
+      document.getElementById('btn-prev').style.display = currentStep === 1 ? 'none' : 'block';
+
+      // Next Button Text
+      const nextBtn = document.getElementById('btn-next');
+      if (currentStep === totalSteps) {
+        nextBtn.innerText = '🚀 Listeyi Televizyona Gönder';
+        nextBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+      } else {
+        nextBtn.innerText = 'Devam Et →';
+        nextBtn.style.background = 'linear-gradient(135deg, #00d2ff 0%, #0070f3 100%)';
+      }
+    }
+
+    async function goToStep(step) {
+      if (step < currentStep) {
+        currentStep = step;
+        updateWizardUI();
+        return;
+      }
+      const isValid = await validateStep(currentStep);
+      if (isValid) {
+        currentStep = step;
+        updateWizardUI();
+      }
+    }
+
+    async function validateStep(step) {
+      if (step === 1) {
+        let code = document.getElementById('tv-code').value.trim();
+        if (!code) {
+          code = 'LG-KDR7';
+          document.getElementById('tv-code').value = code;
+        }
+        return true;
+      }
+
+      if (step === 2) {
+        if (selectedMethodType === 'm3u') {
+          const url = document.getElementById('m3u-url').value.trim();
+          if (!url && !rawM3U) {
+            alert('Lütfen bir M3U URL bağlantısı girin veya dosya seçin.');
+            return false;
+          }
+          // Eğer URL varsa ve henüz parse edilmemişse
+          if (url && parsedChannels.length === 0) {
+            const nextBtn = document.getElementById('btn-next');
+            nextBtn.disabled = true;
+            nextBtn.innerText = 'Çalma Listesi İndiriliyor...';
+            
+            try {
+              const proxyUrl = `/api/fetch?url=${encodeURIComponent(url)}`;
+              const res = await fetch(proxyUrl);
+              if (!res.ok) throw new Error('İndirme başarısız: ' + res.status);
+              rawM3U = await res.text();
+              parseM3UContent(rawM3U);
+              nextBtn.disabled = false;
+              nextBtn.innerText = 'Devam Et →';
+            } catch (err) {
+              console.error('Fetch error:', err);
+              alert('Çalma listesi indirilemedi: ' + err.message);
+              nextBtn.disabled = false;
+              nextBtn.innerText = 'Devam Et →';
+              return false;
+            }
+          }
+        } else {
+          const server = document.getElementById('xtream-server').value.trim();
+          const user = document.getElementById('xtream-user').value.trim();
+          const pass = document.getElementById('xtream-pass').value.trim();
+          if (!server || !user || !pass) {
+            alert('Lütfen Xtream sunucu adresini, kullanıcı adınızı ve şifrenizi girin.');
+            return false;
+          }
+
+          if (parsedChannels.length === 0) {
+            const nextBtn = document.getElementById('btn-next');
+            nextBtn.disabled = true;
+            nextBtn.innerText = 'Xtream Kategorileri Çekiliyor...';
+            try {
+              const xtreamCatUrl = `${server.replace(/\/$/, '')}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=get_live_categories`;
+              const res = await fetch(`/api/fetch?url=${encodeURIComponent(xtreamCatUrl)}`);
+              const cats = await res.json();
+              if (Array.isArray(cats)) {
+                groupMap = {};
+                parsedChannels = [];
+                cats.forEach((cat) => {
+                  groupMap[cat.category_name] = { enabled: true, count: 0 };
+                });
+                renderGroupsList();
+              }
+              nextBtn.disabled = false;
+              nextBtn.innerText = 'Devam Et →';
+            } catch (err) {
+              console.error('Xtream error:', err);
+              nextBtn.disabled = false;
+              nextBtn.innerText = 'Devam Et →';
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    async function nextStep() {
+      const isValid = await validateStep(currentStep);
+      if (!isValid) return;
+
+
+      if (currentStep === totalSteps) {
+        finishAndSend();
+        return;
+      }
+
+      currentStep++;
+      if (currentStep === 4) {
+        updateSummary();
+      }
+      updateWizardUI();
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        updateWizardUI();
+      }
+    }
+
+    function selectMethod(method) {
+      selectedMethodType = method;
+      document.getElementById('method-m3u').classList.toggle('selected', method === 'm3u');
+      document.getElementById('method-xtream').classList.toggle('selected', method === 'xtream');
+      document.getElementById('m3u-container').style.display = method === 'm3u' ? 'block' : 'none';
+      document.getElementById('xtream-container').style.display = method === 'xtream' ? 'block' : 'none';
+    }
+
+    // Dosyadan M3U Okuma
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      document.getElementById('file-status').innerText = 'Seçildi: ' + file.name;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        rawM3U = evt.target.result;
+        parseM3UContent(rawM3U);
+      };
+      reader.readAsText(file);
+    }
+
+    // M3U Çözümleme
+    function parseM3UContent(text) {
+      const lines = text.split(/\r?\n/);
+      parsedChannels = [];
+      groupMap = {};
+
+      let currentChannel = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('#EXTINF:')) {
+          const groupMatch = line.match(/group-title="([^"]+)"/i);
+          let group = groupMatch ? groupMatch[1] : 'Genel Kanallar';
+          
+          const parts = line.split(',');
+          let name = parts.length > 1 ? parts[parts.length - 1].trim() : 'Kanal';
+
+          currentChannel = { rawHeader: line, name, group, url: '' };
+
+          if (!groupMap[group]) {
+            groupMap[group] = { enabled: true, count: 0 };
+          }
+          groupMap[group].count++;
+        } else if (line.length > 0 && !line.startsWith('#') && currentChannel) {
+          currentChannel.url = line;
+          parsedChannels.push(currentChannel);
+          currentChannel = null;
+        }
+      }
+
+      renderGroupsList();
+    }
+
+    function parseDemoOrUrl(url) {
+      // Örnek hızlı kategoriler (URL CORS engellense bile wizard akışını bozmaz)
+      if (parsedChannels.length === 0) {
+        const demoGroups = ['Ulusal Kanallar', 'Spor HD', 'Sinema & Film', 'Belgesel', 'Haber', 'Çocuk'];
+        demoGroups.forEach((g, idx) => {
+          groupMap[g] = { enabled: true, count: 12 + idx * 5 };
+        });
+        parsedChannels = new Array(85).fill({ name: 'Demo' });
+        renderGroupsList();
+      }
+    }
+
+    function renderGroupsList() {
+      const listContainer = document.getElementById('group-list');
+      const stats = document.getElementById('group-stats');
+      listContainer.innerHTML = '';
+
+      const groups = Object.keys(groupMap).sort();
+      stats.innerText = `${groups.length} Kategori Bulundu`;
+
+      groups.forEach((grp) => {
+        const item = document.createElement('div');
+        item.className = 'group-item';
+        item.innerHTML = `
+          <div>
+            <span class="group-name">${grp}</span>
+            <span class="group-count">${groupMap[grp].count} kanal</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" ${groupMap[grp].enabled ? 'checked' : ''} onchange="toggleGroupState('${grp.replace(/'/g, "\\'")}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function toggleGroupState(grp, state) {
+      if (groupMap[grp]) {
+        groupMap[grp].enabled = state;
+      }
+    }
+
+    function toggleAllGroups(state) {
+      Object.keys(groupMap).forEach(k => groupMap[k].enabled = state);
+      renderGroupsList();
+    }
+
+    function updateSummary() {
+      const tvCode = document.getElementById('tv-code').value.trim() || 'LG-DEMO';
+      const playlistName = document.getElementById('playlist-name').value.trim() || 'Kişisel IPTV Listem';
+      
+      document.getElementById('summary-tv-code').innerText = tvCode.toUpperCase();
+      document.getElementById('summary-name').innerText = playlistName;
+      document.getElementById('summary-type').innerText = selectedMethodType === 'm3u' ? 'M3U / M3U8 Yayını' : 'Xtream Codes API';
+
+      const activeGroups = Object.keys(groupMap).filter(k => groupMap[k].enabled);
+      let totalChannels = 0;
+      activeGroups.forEach(k => totalChannels += groupMap[k].count);
+
+      document.getElementById('summary-groups').innerText = `${activeGroups.length} aktif kategori (toplam ${Object.keys(groupMap).length})`;
+      document.getElementById('summary-channels').innerText = `${totalChannels > 0 ? totalChannels : 'Tümü'} Kanal`;
+    }
+
+    async function finishAndSend() {
+      const nextBtn = document.getElementById('btn-next');
+      const statusBox = document.getElementById('status-box');
+      const tvCode = document.getElementById('tv-code').value.trim().toUpperCase() || 'LG-KDR7';
+      const playlistName = document.getElementById('playlist-name').value.trim() || 'Kişisel IPTV Listem';
+
+      nextBtn.disabled = true;
+      nextBtn.innerText = 'Gönderiliyor...';
+
+      // Sadece kullanıcının AÇIK bıraktığı gruplardaki kanalları hazırla
+      const filteredList = parsedChannels.filter(ch => groupMap[ch.group] && groupMap[ch.group].enabled);
+
+      try {
+        const payload = {
+          code: tvCode,
+          name: playlistName,
+          channels: filteredList.map((ch, idx) => ({
+            id: String(idx + 1),
+            name: ch.name,
+            category: ch.group,
+            logo: '',
+            streamUrl: ch.url
+          }))
+        };
+
+        const res = await fetch('/api/save-playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Kaydedilemedi');
+
+        statusBox.className = 'status-msg status-success';
+        statusBox.style.display = 'block';
+        statusBox.innerHTML = `🎉 <strong>Başarılı!</strong><br>${filteredList.length} kanal <strong>${tvCode}</strong> kodlu TV'nize aktarıldı. Televizyonunuzda liste hemen görüntülenecek!`;
+        nextBtn.innerText = 'Tamamlandı ✔';
+
+        if (typeof gtag === 'function') {
+          gtag('event', 'sync_playlist_success', {
+            method: selectedMethodType,
+            channel_count: filteredList.length,
+            device_code: tvCode
+          });
+        }
+      } catch (err) {
+        statusBox.className = 'status-msg';
+        statusBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        statusBox.style.color = '#f87171';
+        statusBox.style.display = 'block';
+        statusBox.innerHTML = `Hata: ${err.message}`;
+        nextBtn.disabled = false;
+        nextBtn.innerText = 'Tekrar Dene';
+
+        if (typeof gtag === 'function') {
+          gtag('event', 'sync_playlist_error', {
+            error_message: err.message,
+            device_code: tvCode
+          });
+        }
+      }
+    }
+
+
+    // URL parametresinden kod çekme (?code=LG-J7B2)
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam) {
+      document.getElementById('tv-code').value = codeParam;
+      if (typeof gtag === 'function') {
+        gtag('event', 'portal_open_with_qr_code', { device_code: codeParam });
+      }
+    }
+  </script>
+</body>
+</html>

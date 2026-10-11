@@ -1,0 +1,19 @@
+{
+  "id": "com.kdr.iptv",
+  "version": "1.0.4",
+  "vendor": "KDR",
+  "type": "web",
+  "main": "index.html",
+  "title": "KDR IPTV: Smart Stream Player",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "transparent": false,
+  "requiredPermissions": [
+    "network"
+  ],
+  "requiredACG": [],
+  "accessibility": {
+    "supportsAudioGuidance": false
+  }
+}

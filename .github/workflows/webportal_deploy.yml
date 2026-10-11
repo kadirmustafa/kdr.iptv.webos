@@ -1,0 +1,203 @@
+name: Web Portal Pipeline
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'web-portal/**'
+      - '.github/workflows/webportal_deploy.yml'
+  workflow_dispatch: # Manuel tetikleme desteği
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  APP_PORT: "8088"
+  CONTAINER_NAME: "kdr-iptv-web-portal"
+  PORTAL_DIR: "web-portal"
+
+jobs:
+  # ============================================================
+  #  JOB 1: CI - Syntax & Health Validation
+  # ============================================================
+  ci:
+    name: Build & Test (Node.js Syntax Check)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check server.js
+        run: node --check web-portal/server.js
+
+      - name: Validate static files exist
+        run: |
+          test -f web-portal/index.html || exit 1
+          test -f web-portal/privacy.html || exit 1
+          echo "Static HTML assets verified successfully."
+
+  # ============================================================
+  #  JOB 2: Build & Push (GitHub Container Registry)
+  # ============================================================
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        run: |
+          set -e
+          REPO_LOWER=$(echo "${{ github.repository }}-webportal" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}"
+
+          echo "Building image: ${IMAGE}"
+          cd ${{ env.PORTAL_DIR }}
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ github.sha }}" .
+          
+          echo "Pushing images..."
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.sha }}"
+
+  # ============================================================
+  #  JOB 3: Deploy (self-hosted runner, pull + restart + healthcheck)
+  # ============================================================
+  deploy:
+    name: Deploy to Server (Self-Hosted)
+    runs-on: self-hosted
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy locally
+        run: |
+          set -Eeuo pipefail
+
+          REPO_LOWER=$(echo "${{ github.repository }}-webportal" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}:${{ github.sha }}"
+          APP_PORT="${{ env.APP_PORT }}"
+          PORTAL_DIR="${{ env.PORTAL_DIR }}"
+          COMPOSE_FILE="${PORTAL_DIR}/docker-compose.yml"
+          APP_CONTAINER="${{ env.CONTAINER_NAME }}"
+          COMPOSE_BACKUP="$(mktemp)"
+          PREVIOUS_IMAGE=""
+          ROLLBACK_STARTED="false"
+
+          echo "============================================"
+          echo "  Deploy Başlıyor: $(date)"
+          echo "  Imaj: ${IMAGE}"
+          echo "  Dizin: ${PORTAL_DIR}"
+          echo "============================================"
+
+          cp "${COMPOSE_FILE}" "${COMPOSE_BACKUP}"
+
+          if docker ps -a --format '{{.Names}}' | grep -qx "${APP_CONTAINER}"; then
+            PREVIOUS_IMAGE="$(docker inspect --format '{{.Config.Image}}' "${APP_CONTAINER}" || true)"
+          fi
+          echo "Önceki imaj: ${PREVIOUS_IMAGE:-yok}"
+
+          verify_health() {
+            local label="$1"
+            echo "${label} healthcheck bekleniyor (max 60sn)..."
+            for i in $(seq 1 30); do
+              STATUS="$(curl -sS -o /dev/null -w "%{http_code}" "http://localhost:${APP_PORT}/health" || echo "000")"
+              if [ "${STATUS}" = "200" ]; then
+                echo "  ✅ ${label} sağlıklı (HTTP ${STATUS})"
+                return 0
+              fi
+              echo "  Deneme ${i}/30: HTTP ${STATUS}"
+              sleep 2
+            done
+            echo "  ❌ ${label} healthcheck başarısız."
+            return 1
+          }
+
+          rollback() {
+            if [ "${ROLLBACK_STARTED}" = "true" ]; then
+              return
+            fi
+            ROLLBACK_STARTED="true"
+
+            echo "⚠️ Deploy başarısız. Rollback başlatılıyor..."
+            if [ -z "${PREVIOUS_IMAGE}" ]; then
+              echo "❌ Rollback yapılamadı: önceki imaj bilgisi yok."
+              return
+            fi
+
+            cp "${COMPOSE_BACKUP}" "${COMPOSE_FILE}"
+            sed -i -E "s|^([[:space:]]*image:[[:space:]]*).*$|\\1${PREVIOUS_IMAGE}|" "${COMPOSE_FILE}"
+            docker pull "${PREVIOUS_IMAGE}" || true
+            docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
+            if ! verify_health "Rollback"; then
+              echo "❌ Rollback sonrası servis healthy olmadı."
+            fi
+          }
+
+          cleanup() {
+            local status=$?
+            if [ ${status} -ne 0 ]; then
+              rollback
+            fi
+            cp "${COMPOSE_BACKUP}" "${COMPOSE_FILE}"
+            rm -f "${COMPOSE_BACKUP}"
+            exit ${status}
+          }
+          trap cleanup EXIT
+
+          echo "[1/4] Docker imajı çekiliyor..."
+          docker pull "${IMAGE}"
+
+          echo "[2/4] docker-compose.yml güncelleniyor..."
+          sed -i -E "s|^([[:space:]]*image:[[:space:]]*).*$|\\1${IMAGE}|" "${COMPOSE_FILE}"
+
+          echo "[3/4] Servis yeniden başlatılıyor..."
+          docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
+
+          verify_health "Yeni sürüm"
+
+          echo "[4/4] Eski imajlar temizleniyor..."
+          docker image prune -af --filter "until=72h" || true
+
+          echo "============================================"
+          echo "  🎉 Deploy Tamamlandı: $(date)"
+          echo "============================================"
+
+      - name: Sistem durumu (RAM / Disk)
+        if: always()
+        run: |
+          echo "=== Bellek Kullanımı ==="
+          free -h || true
+          echo
+          echo "=== Docker Disk Kullanımı ==="
+          docker system df || true
