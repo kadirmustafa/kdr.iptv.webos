@@ -37,6 +37,11 @@ export const TVPlayer: React.FC<TVPlayerProps> = ({
   const [isAudioMenuOpen, setIsAudioMenuOpen] = useState<boolean>(false);
   const [isSubtitleMenuOpen, setIsSubtitleMenuOpen] = useState<boolean>(false);
   const [isMultiScreenActive, setIsMultiScreenActive] = useState<boolean>(false);
+  // Latest values for the BACK key listener (registered once per stream, so it must not read stale state)
+  const menusOpenRef = useRef(false);
+  menusOpenRef.current = isAudioMenuOpen || isSubtitleMenuOpen;
+  const onBackRef = useRef(onBack);
+  onBackRef.current = onBack;
 
   const initPlayer = () => {
     setPlaybackError(null);
@@ -158,12 +163,13 @@ export const TVPlayer: React.FC<TVPlayerProps> = ({
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.keyCode === 461 || e.keyCode === 27 || e.keyCode === 8) {
-        if (isAudioMenuOpen || isSubtitleMenuOpen) {
+        if (e.preventDefault) e.preventDefault();
+        if (menusOpenRef.current) {
           setIsAudioMenuOpen(false);
           setIsSubtitleMenuOpen(false);
           return;
         }
-        onBack();
+        onBackRef.current();
       }
     };
     window.addEventListener('keydown', handleKey);

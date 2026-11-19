@@ -1,6 +1,19 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { RemoteKeys } from './components/FocusableItem';
 import { TVPlayer } from './components/TVPlayer';
+
+// appinfo.json sets disableBackHistoryAPI=true, so the app owns the BACK key.
+// On the entry screen BACK must leave the app the way LG requires.
+function exitToPlatform() {
+  const w = window as unknown as { webOS?: { platformBack?: () => void } };
+  try {
+    if (w.webOS && typeof w.webOS.platformBack === 'function') {
+      w.webOS.platformBack();
+      return;
+    }
+  } catch (_) { /* fall through */ }
+  window.close();
+}
 import { TVAnalytics } from './services/analytics';
 import { fetchPlaylists, getCachedPlaylists, switchPlaylistOnServer, getDeviceId, PORTAL_ENDPOINTS, DEFAULT_CHANNELS, type Channel, type PlaylistInfo } from './services/playlistService';
 import { getChannelEPG } from './services/epgService';
@@ -206,8 +219,9 @@ export function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.keyCode === RemoteKeys.BACK || e.keyCode === RemoteKeys.ESCAPE) {
+        if (e.preventDefault) e.preventDefault();
         if (playingChannel) {
-          setPlayingChannel(null);
+          // TVPlayer handles BACK itself (closes its audio/subtitle menus first, then the player)
           return;
         }
         if (isPlaylistModalOpen) {
@@ -223,6 +237,11 @@ export function App() {
           setActiveFocusArea('categories');
           return;
         }
+        // Entry screen: hand BACK to the platform (exit popup on webOS 6+, Home launcher on webOS 5 and older)
+        if (e.keyCode === RemoteKeys.BACK) {
+          exitToPlatform();
+        }
+        return;
       }
 
       // Sarı Buton Kısayolu (Kumandada Favoriye Ekle / Kaldır)
@@ -658,7 +677,7 @@ export function App() {
             </p>
             <div className="mt-4 flex items-center gap-3">
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-gray-400">
-                v1.0.4 • LG webOS
+                v1.0.6 • LG webOS
               </span>
               <a 
                 href={`${portalUrl}/privacy`} 

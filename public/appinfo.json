@@ -1,14 +1,16 @@
 {
   "id": "com.kdr.iptv",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "vendor": "KDR",
   "type": "web",
   "main": "index.html",
   "title": "KDR IPTV: Smart Stream Player",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
+  "iconColor": "#071020",
   "resolution": "1920x1080",
   "transparent": false,
+  "disableBackHistoryAPI": true,
   "requiredPermissions": [
     "network"
   ],

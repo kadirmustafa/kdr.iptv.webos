@@ -1,11 +1,11 @@
 {
   "name": "webosapp",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/postbuild-compat.mjs",
     "package": "node scripts/build-release.js",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -18,13 +18,17 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@csstools/postcss-cascade-layers": "^6.0.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-legacy": "^8.2.4",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "postcss": "^8.5.33",
     "tailwindcss": "^4.3.3",
+    "terser": "^5.51.2",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

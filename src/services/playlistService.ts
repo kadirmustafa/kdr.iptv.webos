@@ -13,34 +13,28 @@ export interface PlaylistInfo {
   active: boolean;
 }
 
+// Offline fallback only: royalty-free public demo streams (no broadcaster names, logos or live TV feeds).
 export const DEFAULT_CHANNELS: Channel[] = [
   {
     id: '1',
-    name: 'TRT 1 HD',
-    category: 'TR ☪️ ULUSAL',
-    logo: 'https://i.ibb.co/rnG6H83/trt1.png',
+    name: 'Demo: Big Buck Bunny (HLS)',
+    category: 'Demo',
+    logo: 'icon.png',
     streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
   },
   {
     id: '2',
-    name: 'TRT Spor HD',
-    category: 'TR ☪️ SPOR',
-    logo: 'https://i.imgur.com/ZhkZzLf.png',
-    streamUrl: 'https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/aspor/aspor.m3u8'
+    name: 'Demo: Apple BipBop 16x9 (HLS)',
+    category: 'Demo',
+    logo: 'icon.png',
+    streamUrl: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8'
   },
   {
     id: '3',
-    name: '24 TV HD',
-    category: 'TR ☪️ HABER',
-    logo: 'https://i.imgur.com/8FO41es.png',
-    streamUrl: 'https://turkmedya-live.ercdn.net/tv24/tv24.m3u8'
-  },
-  {
-    id: '4',
-    name: 'National Geographic HD',
-    category: 'TR ☪️ BELGESEL',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/NASA_logo.svg',
-    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    name: 'Demo: Tears of Steel (HLS)',
+    category: 'Demo',
+    logo: 'icon.png',
+    streamUrl: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
   }
 ];
 
@@ -139,10 +133,20 @@ export async function fetchPlaylists(deviceCode: string = getDeviceId()): Promis
       const url = `${baseUrl}/api/get-playlist?code=${encodeURIComponent(deviceCode)}`;
       console.log(`[DEBUG] Portal sorgulanıyor: ${url}`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      // AbortController is missing on older webOS (Chromium < 66): fall back to a timeout race
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error('timeout'));
+        }, 2500);
+      });
 
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await Promise.race([
+        fetch(url, controller ? { signal: controller.signal } : {}),
+        timeout
+      ]);
       clearTimeout(timeoutId);
 
       if (res.ok) {
