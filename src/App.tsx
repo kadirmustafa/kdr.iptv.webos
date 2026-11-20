@@ -15,7 +15,8 @@ function exitToPlatform() {
   window.close();
 }
 import { TVAnalytics } from './services/analytics';
-import { fetchPlaylists, getCachedPlaylists, switchPlaylistOnServer, getDeviceId, PORTAL_ENDPOINTS, DEFAULT_CHANNELS, type Channel, type PlaylistInfo } from './services/playlistService';
+import { fetchPlaylists, getCachedPlaylists, switchPlaylistOnServer, getDeviceId, PORTAL_ENDPOINTS, DEFAULT_CHANNELS, SAMPLE_PLAYLIST_ID, DEMO_PLAYLIST_ID, type Channel, type PlaylistInfo, type PlaylistResult } from './services/playlistService';
+import { getSampleChoice, setSampleChoice, setSamplePreferred, detectCountry, countryDisplayName, type SampleChoice } from './services/sampleList';
 import { getChannelEPG } from './services/epgService';
 import { detectSystemLanguage, TRANSLATIONS, type SupportedLanguage } from './services/i18n';
 import { 
@@ -32,10 +33,18 @@ export function App() {
   // Önbellekteki son yüklenen listeyi al (açılışta anında göstermek için)
   const initialCache = getCachedPlaylists();
   const [channels, setChannels] = useState<Channel[]>(() => initialCache?.channels || DEFAULT_CHANNELS);
-  const [activePlaylistTitle, setActivePlaylistTitle] = useState<string>(() => initialCache?.currentPlaylistName || (initialCache ? 'Varsayılan TR Yayınları' : 'Varsayılan Liste'));
+  const [activePlaylistTitle, setActivePlaylistTitle] = useState<string>(() => initialCache?.currentPlaylistName || 'Demo streams');
   const [allPlaylists, setAllPlaylists] = useState<PlaylistInfo[]>(() => initialCache?.allPlaylists || []);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
+
+  // v1.0.7: optional sample public channel list (iptv-org, fetched live for the TV's country).
+  // Asked once on first launch; the answer is stored and can be changed in Settings.
+  const [sampleChoice, setSampleChoiceState] = useState<SampleChoice>(() => getSampleChoice());
+  const [isSamplePromptOpen, setIsSamplePromptOpen] = useState<boolean>(() => getSampleChoice() === null);
+  const [samplePromptFocus, setSamplePromptFocus] = useState<'yes' | 'no'>('yes');
+  const [tvCountry] = useState<string | null>(() => detectCountry());
+  const countryLabel = countryDisplayName(tvCountry, currentLang) || 'your country';
 
 
   // Favoriler (Tüm listelerden eklenen kanalların stream ve metadata bilgileriyle birlikte saklanır)
@@ -122,21 +131,43 @@ export function App() {
   // Listeleri Çekme
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
 
-  const refreshList = (showToast = false) => {
+  const showToast = (msg: string) => {
+    setNotificationMsg(msg);
+    setTimeout(() => setNotificationMsg(null), 6000);
+  };
+
+  const applyResult = (res: PlaylistResult) => {
+    setChannels(res.channels);
+    setActivePlaylistTitle(res.currentPlaylistName);
+    setAllPlaylists(res.allPlaylists);
+    setFocusedChannelIndex(0);
+    setSelectedCategory('ALL');
+    setFocusedCategoryIndex(0);
+  };
+
+  const refreshList = (withToast = false) => {
     setIsLoadingList(true);
     fetchPlaylists(deviceId).then((res) => {
       if (res && res.channels.length > 0) {
-        setChannels(res.channels);
-        setActivePlaylistTitle(res.currentPlaylistName);
-        setAllPlaylists(res.allPlaylists);
+        applyResult(res);
         TVAnalytics.logPlaylistLoaded(res.channels.length);
-        if (showToast) {
-          setNotificationMsg(`🎉 Yeni liste yüklendi: "${res.currentPlaylistName}" (${res.channels.length} kanal)`);
-          setTimeout(() => setNotificationMsg(null), 6000);
+        if (res.source === 'demo' && getSampleChoice() === 'yes') {
+          showToast(t.sampleUnavailable);
+        } else if (withToast) {
+          showToast(`🎉 ${t.newPlaylistLoaded} "${res.currentPlaylistName}" (${res.channels.length} ${t.totalChannels})`);
         }
       }
       setIsLoadingList(false);
-    });
+    }, () => setIsLoadingList(false));
+  };
+
+  const chooseSample = (choice: 'yes' | 'no') => {
+    setSampleChoice(choice);
+    setSampleChoiceState(choice);
+    setIsSamplePromptOpen(false);
+    if (choice === 'yes') setSamplePreferred(false);
+    TVAnalytics.logEvent('tv_sample_list_choice', { choice, country: tvCountry || 'unknown' });
+    refreshList(choice === 'yes');
   };
 
   useEffect(() => {
@@ -152,8 +183,7 @@ export function App() {
               console.log(`[DEBUG] Yeni IPTV listesi algılandı! Ekran yenileniyor...`);
               setActivePlaylistTitle(res.currentPlaylistName);
               setAllPlaylists(res.allPlaylists);
-              setNotificationMsg(`🎉 Yeni liste yüklendi: "${res.currentPlaylistName}" (${res.channels.length} kanal)`);
-              setTimeout(() => setNotificationMsg(null), 6000);
+              showToast(`🎉 ${t.newPlaylistLoaded} "${res.currentPlaylistName}" (${res.channels.length} ${t.totalChannels})`);
               return res.channels;
             }
             return prevChannels;
@@ -218,6 +248,40 @@ export function App() {
   // Kumanda D-pad Yönetimi
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // First-launch sample list prompt owns the remote while it is open
+      if (isSamplePromptOpen) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.keyCode === RemoteKeys.LEFT || e.keyCode === RemoteKeys.RIGHT || e.keyCode === RemoteKeys.UP || e.keyCode === RemoteKeys.DOWN) {
+          setSamplePromptFocus((f) => (f === 'yes' ? 'no' : 'yes'));
+        } else if (e.keyCode === RemoteKeys.ENTER) {
+          chooseSample(samplePromptFocus);
+        } else if (e.keyCode === RemoteKeys.BACK || e.keyCode === RemoteKeys.ESCAPE) {
+          chooseSample('no');
+        }
+        return;
+      }
+
+      // BLUE: open / close Settings (shown in the footer hint)
+      if (e.keyCode === RemoteKeys.BLUE && !playingChannel) {
+        setActiveTab((tab) => (tab === 'settings' ? 'live' : 'settings'));
+        return;
+      }
+
+      // Settings screen: OK toggles the sample list, BACK returns to the channel guide
+      if (activeTab === 'settings' && !playingChannel && !isPlaylistModalOpen && !isLangModalOpen) {
+        if (e.keyCode === RemoteKeys.ENTER) {
+          if (e.preventDefault) e.preventDefault();
+          chooseSample(sampleChoice === 'yes' ? 'no' : 'yes');
+          return;
+        }
+        if (e.keyCode === RemoteKeys.BACK || e.keyCode === RemoteKeys.ESCAPE) {
+          if (e.preventDefault) e.preventDefault();
+          setActiveTab('live');
+          return;
+        }
+        return;
+      }
+
       if (e.keyCode === RemoteKeys.BACK || e.keyCode === RemoteKeys.ESCAPE) {
         if (e.preventDefault) e.preventDefault();
         if (playingChannel) {
@@ -226,6 +290,10 @@ export function App() {
         }
         if (isPlaylistModalOpen) {
           setIsPlaylistModalOpen(false);
+          return;
+        }
+        if (isLangModalOpen) {
+          setIsLangModalOpen(false);
           return;
         }
         if (isSearchOpen) {
@@ -302,7 +370,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playingChannel, isPlaylistModalOpen, isSearchOpen, activeFocusArea, focusedCategoryIndex, focusedChannelIndex, categories, filteredChannels]);
+  }, [playingChannel, isPlaylistModalOpen, isLangModalOpen, isSearchOpen, activeFocusArea, focusedCategoryIndex, focusedChannelIndex, categories, filteredChannels, isSamplePromptOpen, samplePromptFocus, activeTab, sampleChoice]);
 
   // Kaydırma odakları
   useEffect(() => {
@@ -507,6 +575,36 @@ export function App() {
         </div>
       </header>
 
+      {/* --- İLK AÇILIŞ: ÖRNEK KANAL LİSTESİ SORUSU --- */}
+      {isSamplePromptOpen && (
+        <div className="absolute inset-0 bg-black/85 z-[60] flex items-center justify-center p-8">
+          <div className="w-full max-w-2xl bg-[#0f172a] border border-cyan-400/50 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+              <ListMusic size={24} className="text-cyan-400" />
+              <span className="text-xs font-black uppercase tracking-widest text-cyan-400">{t.sampleTitle}</span>
+            </div>
+            <h3 className="text-2xl font-black text-white mt-5">{t.samplePrompt.replace('{country}', countryLabel)}</h3>
+            <p className="text-sm text-gray-300 leading-relaxed mt-3">{t.sampleDesc}</p>
+            <div className="flex items-center gap-4 mt-7">
+              {(['yes', 'no'] as const).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => chooseSample(opt)}
+                  onMouseEnter={() => setSamplePromptFocus(opt)}
+                  className={`flex-1 py-4 rounded-2xl font-black text-lg cursor-pointer transition-all ${
+                    samplePromptFocus === opt
+                      ? 'bg-cyan-400 text-black ring-4 ring-white shadow-lg shadow-cyan-400/40 scale-105'
+                      : 'bg-white/10 text-gray-200'
+                  }`}
+                >
+                  {opt === 'yes' ? t.yes : t.no}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- 2. ÇOKLU ÇALMA LİSTESİ MODALI (PLAYLIST SWITCHER) --- */}
       {isPlaylistModalOpen && (
         <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-8">
@@ -531,6 +629,17 @@ export function App() {
                   <div
                     key={pl.id}
                     onClick={() => {
+                      if (pl.id === DEMO_PLAYLIST_ID) {
+                        setIsPlaylistModalOpen(false);
+                        return;
+                      }
+                      if (pl.id === SAMPLE_PLAYLIST_ID) {
+                        setSamplePreferred(true);
+                        refreshList();
+                        setIsPlaylistModalOpen(false);
+                        return;
+                      }
+                      setSamplePreferred(false);
                       switchPlaylistOnServer(deviceId, pl.id).then(() => {
                         refreshList();
                         setIsPlaylistModalOpen(false);
@@ -544,7 +653,7 @@ export function App() {
                   >
                     <div>
                       <div className="font-extrabold text-sm">{pl.name}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{pl.count} {t.totalChannels}</div>
+                      {pl.count > 0 && <div className="text-xs text-gray-400 mt-0.5">{pl.count} {t.totalChannels}</div>}
                     </div>
                     {isActive ? (
                       <span className="flex items-center gap-1 text-xs font-bold text-cyan-400 bg-cyan-950/80 px-2.5 py-1 rounded-lg border border-cyan-800">
@@ -677,7 +786,7 @@ export function App() {
             </p>
             <div className="mt-4 flex items-center gap-3">
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-gray-400">
-                v1.0.6 • LG webOS
+                v1.0.7 • LG webOS
               </span>
               <a 
                 href={`${portalUrl}/privacy`} 
@@ -688,6 +797,26 @@ export function App() {
                 Gizlilik & Yardım Kılavuzu (Help)
               </a>
             </div>
+          </div>
+
+          {/* Örnek herkese açık kanal listesi (iptv-org, isteğe bağlı) */}
+          <div className="col-span-12 flex items-center justify-between gap-6 bg-[#0f172a]/90 border border-white/10 rounded-3xl px-8 py-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-extrabold text-white">{t.sampleSettingsTitle}</h3>
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${sampleChoice === 'yes' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-white/5 text-gray-400 border border-white/10'}`}>
+                  {sampleChoice === 'yes' ? t.sampleStatusOn : t.sampleStatusOff}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{t.sampleSettingsDesc.replace('{country}', countryLabel)}</p>
+              <p className="text-[11px] text-gray-500 mt-1">{t.sampleHint}</p>
+            </div>
+            <button
+              onClick={() => chooseSample(sampleChoice === 'yes' ? 'no' : 'yes')}
+              className={`flex-shrink-0 px-5 py-3 rounded-xl font-extrabold text-sm cursor-pointer ring-4 ring-cyan-400 transition-all ${sampleChoice === 'yes' ? 'bg-white/10 text-white' : 'bg-cyan-400 text-black shadow-lg shadow-cyan-400/30'}`}
+            >
+              {sampleChoice === 'yes' ? t.sampleRemove : t.sampleAdd}
+            </button>
           </div>
         </section>
       ) : (

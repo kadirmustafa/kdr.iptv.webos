@@ -38,6 +38,19 @@ export interface Translations {
   hardwareAccel: string;
   language: string;
   loading: string;
+  sampleTitle: string;
+  samplePrompt: string;
+  sampleDesc: string;
+  yes: string;
+  no: string;
+  sampleSettingsTitle: string;
+  sampleSettingsDesc: string;
+  sampleAdd: string;
+  sampleRemove: string;
+  sampleStatusOn: string;
+  sampleStatusOff: string;
+  sampleUnavailable: string;
+  sampleHint: string;
 }
 
 export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
@@ -78,7 +91,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'Online',
     hardwareAccel: 'LG webOS GPU hardware acceleration enabled.',
     language: 'Language',
-    loading: 'Loading...'
+    loading: 'Loading...',
+    sampleTitle: "Sample channels",
+    samplePrompt: "Load sample public channel list for {country}?",
+    sampleDesc: "The public list is downloaded from the open-source iptv-org project (github.com/iptv-org/iptv). KDR IPTV does not host, own or control these streams; some may be offline. You can remove it any time in Settings.",
+    yes: "Yes",
+    no: "No",
+    sampleSettingsTitle: "Sample public channel list",
+    sampleSettingsDesc: "Optional public list from iptv-org for {country}. Your own playlist added by phone always comes first.",
+    sampleAdd: "Add sample list",
+    sampleRemove: "Remove sample list",
+    sampleStatusOn: "Enabled",
+    sampleStatusOff: "Disabled",
+    sampleUnavailable: "Sample list for your country is not available right now. Showing demo streams.",
+    sampleHint: "OK: change   •   BACK: back to channels"
   },
   tr: {
     favorites: 'FAVORİLER',
@@ -117,7 +143,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'Çevrimiçi',
     hardwareAccel: 'LG webOS donanım hızlandırma ile doğrudan oynatılır.',
     language: 'Dil / Language',
-    loading: 'Yükleniyor...'
+    loading: 'Yükleniyor...',
+    sampleTitle: "Örnek kanallar",
+    samplePrompt: "{country} için örnek herkese açık kanal listesi yüklensin mi?",
+    sampleDesc: "Liste, açık kaynaklı iptv-org projesinden (github.com/iptv-org/iptv) indirilir. KDR IPTV bu yayınları barındırmaz, sahibi değildir ve kontrol etmez; bazıları çalışmayabilir. İstediğiniz zaman Ayarlar'dan kaldırabilirsiniz.",
+    yes: "Evet",
+    no: "Hayır",
+    sampleSettingsTitle: "Örnek herkese açık kanal listesi",
+    sampleSettingsDesc: "{country} için iptv-org'dan isteğe bağlı açık liste. Telefondan eklediğiniz kendi listeniz her zaman önce gelir.",
+    sampleAdd: "Örnek listeyi ekle",
+    sampleRemove: "Örnek listeyi kaldır",
+    sampleStatusOn: "Açık",
+    sampleStatusOff: "Kapalı",
+    sampleUnavailable: "Ülkeniz için örnek liste şu an alınamadı. Demo yayınlar gösteriliyor.",
+    sampleHint: "OK: değiştir   •   GERİ: kanallara dön"
   },
   de: {
     favorites: 'FAVORITEN',
@@ -156,7 +195,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'Online',
     hardwareAccel: 'LG webOS Hardware-Beschleunigung aktiv.',
     language: 'Sprache',
-    loading: 'Wird geladen...'
+    loading: 'Wird geladen...',
+    sampleTitle: "Beispielsender",
+    samplePrompt: "Öffentliche Beispiel-Senderliste für {country} laden?",
+    sampleDesc: "Die öffentliche Liste wird vom Open-Source-Projekt iptv-org (github.com/iptv-org/iptv) geladen. KDR IPTV hostet, besitzt oder kontrolliert diese Streams nicht; einige sind evtl. offline. Sie können sie jederzeit in den Einstellungen entfernen.",
+    yes: "Ja",
+    no: "Nein",
+    sampleSettingsTitle: "Öffentliche Beispiel-Senderliste",
+    sampleSettingsDesc: "Optionale öffentliche Liste von iptv-org für {country}. Ihre eigene, per Telefon hinzugefügte Liste hat immer Vorrang.",
+    sampleAdd: "Beispielliste hinzufügen",
+    sampleRemove: "Beispielliste entfernen",
+    sampleStatusOn: "Aktiviert",
+    sampleStatusOff: "Deaktiviert",
+    sampleUnavailable: "Die Beispielliste für Ihr Land ist derzeit nicht verfügbar. Demo-Streams werden angezeigt.",
+    sampleHint: "OK: ändern   •   ZURÜCK: zu den Sendern"
   },
   fr: {
     favorites: 'FAVORIS',
@@ -195,7 +247,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'En ligne',
     hardwareAccel: 'Accélération matérielle LG webOS activée.',
     language: 'Langue',
-    loading: 'Chargement...'
+    loading: 'Chargement...',
+    sampleTitle: "Chaînes d'exemple",
+    samplePrompt: "Charger la liste publique de chaînes d'exemple pour {country} ?",
+    sampleDesc: "La liste publique est téléchargée depuis le projet open source iptv-org (github.com/iptv-org/iptv). KDR IPTV n'héberge, ne possède ni ne contrôle ces flux ; certains peuvent être hors ligne. Vous pouvez la supprimer à tout moment dans Paramètres.",
+    yes: "Oui",
+    no: "Non",
+    sampleSettingsTitle: "Liste publique de chaînes d'exemple",
+    sampleSettingsDesc: "Liste publique facultative d'iptv-org pour {country}. Votre propre liste ajoutée par téléphone passe toujours en premier.",
+    sampleAdd: "Ajouter la liste d'exemple",
+    sampleRemove: "Supprimer la liste d'exemple",
+    sampleStatusOn: "Activée",
+    sampleStatusOff: "Désactivée",
+    sampleUnavailable: "La liste d'exemple pour votre pays n'est pas disponible pour le moment. Flux de démonstration affichés.",
+    sampleHint: "OK : modifier   •   RETOUR : vers les chaînes"
   },
   it: {
     favorites: 'PREFERITI',
@@ -234,7 +299,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'Online',
     hardwareAccel: 'Accelerazione hardware LG webOS attiva.',
     language: 'Lingua',
-    loading: 'Caricamento...'
+    loading: 'Caricamento...',
+    sampleTitle: "Canali di esempio",
+    samplePrompt: "Caricare l'elenco pubblico di canali di esempio per {country}?",
+    sampleDesc: "L'elenco pubblico viene scaricato dal progetto open source iptv-org (github.com/iptv-org/iptv). KDR IPTV non ospita, possiede né controlla questi flussi; alcuni potrebbero essere offline. Puoi rimuoverlo in qualsiasi momento dalle Impostazioni.",
+    yes: "Sì",
+    no: "No",
+    sampleSettingsTitle: "Elenco pubblico di canali di esempio",
+    sampleSettingsDesc: "Elenco pubblico facoltativo di iptv-org per {country}. La tua playlist aggiunta dal telefono ha sempre la precedenza.",
+    sampleAdd: "Aggiungi elenco di esempio",
+    sampleRemove: "Rimuovi elenco di esempio",
+    sampleStatusOn: "Attivo",
+    sampleStatusOff: "Disattivo",
+    sampleUnavailable: "L'elenco di esempio per il tuo paese non è disponibile ora. Vengono mostrati flussi demo.",
+    sampleHint: "OK: cambia   •   INDIETRO: ai canali"
   },
   es: {
     favorites: 'FAVORITOS',
@@ -273,7 +351,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'En línea',
     hardwareAccel: 'Aceleración por hardware LG webOS activada.',
     language: 'Idioma',
-    loading: 'Cargando...'
+    loading: 'Cargando...',
+    sampleTitle: "Canales de ejemplo",
+    samplePrompt: "¿Cargar la lista pública de canales de ejemplo para {country}?",
+    sampleDesc: "La lista pública se descarga del proyecto de código abierto iptv-org (github.com/iptv-org/iptv). KDR IPTV no aloja, posee ni controla estas emisiones; algunas pueden no funcionar. Puedes quitarla en cualquier momento en Ajustes.",
+    yes: "Sí",
+    no: "No",
+    sampleSettingsTitle: "Lista pública de canales de ejemplo",
+    sampleSettingsDesc: "Lista pública opcional de iptv-org para {country}. Tu propia lista añadida desde el teléfono siempre tiene prioridad.",
+    sampleAdd: "Añadir lista de ejemplo",
+    sampleRemove: "Quitar lista de ejemplo",
+    sampleStatusOn: "Activada",
+    sampleStatusOff: "Desactivada",
+    sampleUnavailable: "La lista de ejemplo para tu país no está disponible ahora. Se muestran emisiones de demostración.",
+    sampleHint: "OK: cambiar   •   ATRÁS: a los canales"
   },
   ru: {
     favorites: 'ИЗБРАННОЕ',
@@ -312,7 +403,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'В сети',
     hardwareAccel: 'Аппаратное ускорение LG webOS активно.',
     language: 'Язык',
-    loading: 'Загрузка...'
+    loading: 'Загрузка...',
+    sampleTitle: "Примеры каналов",
+    samplePrompt: "Загрузить публичный список примеров каналов для {country}?",
+    sampleDesc: "Публичный список загружается из проекта с открытым исходным кодом iptv-org (github.com/iptv-org/iptv). KDR IPTV не размещает, не владеет и не контролирует эти трансляции; некоторые могут не работать. Его можно удалить в любое время в Настройках.",
+    yes: "Да",
+    no: "Нет",
+    sampleSettingsTitle: "Публичный список примеров каналов",
+    sampleSettingsDesc: "Необязательный публичный список iptv-org для {country}. Ваш собственный список, добавленный с телефона, всегда имеет приоритет.",
+    sampleAdd: "Добавить список примеров",
+    sampleRemove: "Удалить список примеров",
+    sampleStatusOn: "Включено",
+    sampleStatusOff: "Выключено",
+    sampleUnavailable: "Список примеров для вашей страны сейчас недоступен. Показаны демо-трансляции.",
+    sampleHint: "OK: изменить   •   НАЗАД: к каналам"
   },
   ar: {
     favorites: 'المفضلة',
@@ -351,7 +455,20 @@ export const TRANSLATIONS: Record<SupportedLanguage, Translations> = {
     online: 'متصل',
     hardwareAccel: 'تسريع الأجهزة مدعوم على LG webOS.',
     language: 'اللغة',
-    loading: 'جاري التحميل...'
+    loading: 'جاري التحميل...',
+    sampleTitle: "قنوات تجريبية",
+    samplePrompt: "هل تريد تحميل قائمة القنوات العامة التجريبية لـ {country}؟",
+    sampleDesc: "يتم تنزيل القائمة العامة من مشروع iptv-org مفتوح المصدر (github.com/iptv-org/iptv). لا يستضيف KDR IPTV هذه البثوث ولا يملكها ولا يتحكم بها؛ وقد لا يعمل بعضها. يمكنك إزالتها في أي وقت من الإعدادات.",
+    yes: "نعم",
+    no: "لا",
+    sampleSettingsTitle: "قائمة القنوات العامة التجريبية",
+    sampleSettingsDesc: "قائمة عامة اختيارية من iptv-org لـ {country}. قائمتك الخاصة المضافة من الهاتف لها الأولوية دائمًا.",
+    sampleAdd: "إضافة القائمة التجريبية",
+    sampleRemove: "إزالة القائمة التجريبية",
+    sampleStatusOn: "مفعّلة",
+    sampleStatusOff: "معطّلة",
+    sampleUnavailable: "القائمة التجريبية لبلدك غير متاحة حاليًا. يتم عرض بثوث تجريبية.",
+    sampleHint: "OK: تغيير   •   رجوع: إلى القنوات"
   }
 };
 

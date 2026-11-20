@@ -1,3 +1,5 @@
+import { getSampleChoice, isSamplePreferred, getCachedSample, loadSampleChannels, detectCountry } from './sampleList';
+
 export interface Channel {
   id: string;
   name: string;
@@ -67,72 +69,70 @@ export function getDeviceId(): string {
   }
 }
 
-// GitHub TR Varsayılan kanalları (önbellek)
-let cachedGithubChannels: Channel[] | null = null;
+// Portal placeholder id for devices that have not paired a playlist yet.
+// v1.0.7: it is ignored on the TV; the public sample list is only loaded when the user opts in.
+const PORTAL_PLACEHOLDER_ID = 'gh_tr';
+export const SAMPLE_PLAYLIST_ID = 'sample_public';
+export const DEMO_PLAYLIST_ID = 'demo';
 
-async function getGithubTRChannels(): Promise<Channel[]> {
-  if (cachedGithubChannels && cachedGithubChannels.length > 0) {
-    return cachedGithubChannels;
-  }
-  try {
-    const res = await fetch('https://iptv-org.github.io/iptv/countries/tr.m3u');
-    if (!res.ok) throw new Error('GitHub network error');
-    const text = await res.text();
-    const lines = text.split(/\r?\n/);
-    const channels: Channel[] = [];
-    let current: Partial<Channel> = {};
+export type PlaylistSource = 'user' | 'sample' | 'demo';
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('#EXTINF:')) {
-        const logoMatch = line.match(/tvg-logo="([^"]+)"/i);
-        const groupMatch = line.match(/group-title="([^"]+)"/i);
-        const nameParts = line.split(',');
-        const name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'Kanal';
-
-        current = {
-          id: 'gh_' + String(channels.length + 1),
-          name: name,
-          category: groupMatch ? groupMatch[1] : 'Genel',
-          logo: logoMatch ? logoMatch[1] : ''
-        };
-      } else if (line.length > 0 && !line.startsWith('#') && current.name) {
-        current.streamUrl = line;
-        channels.push(current as Channel);
-        current = {};
-      }
-    }
-    cachedGithubChannels = channels.length > 0 ? channels : DEFAULT_CHANNELS;
-    return cachedGithubChannels;
-  } catch (e) {
-    return DEFAULT_CHANNELS;
-  }
+export interface PlaylistResult {
+  currentPlaylistName: string;
+  allPlaylists: PlaylistInfo[];
+  channels: Channel[];
+  source: PlaylistSource;
+  activeId: string;
 }
 
-// Yerel önbelleğe alınmış son başarılı çalma listesi (ilk açılışı anında yapmak için)
-const CACHE_KEY_PLAYLIST = 'kdr_tv_cached_playlist_v1';
+// Last successful paired (user) playlist, for instant start-up. v2 key: drops the v1 cache,
+// which could contain the silently loaded GitHub TR list of older versions.
+const CACHE_KEY_PLAYLIST = 'kdr_tv_cached_playlist_v2';
 
-export function getCachedPlaylists(): { currentPlaylistName: string; allPlaylists: PlaylistInfo[]; channels: Channel[] } | null {
+function sampleName(country: string | null): string {
+  return country ? `Sample public channels (${country})` : 'Sample public channels';
+}
+
+function demoResult(allPlaylists: PlaylistInfo[] = []): PlaylistResult {
+  const demo: PlaylistInfo = { id: DEMO_PLAYLIST_ID, name: 'Demo streams', count: DEFAULT_CHANNELS.length, active: true };
+  return {
+    currentPlaylistName: demo.name,
+    allPlaylists: [...allPlaylists.map(p => ({ ...p, active: false })), demo],
+    channels: DEFAULT_CHANNELS,
+    source: 'demo',
+    activeId: DEMO_PLAYLIST_ID
+  };
+}
+
+function cleanText(v: string | undefined, fallback: string): string {
+  return v ? v.replace(/[\uFFFD\uFEFF]/g, '').replace(/\s+/g, ' ').trim() : fallback;
+}
+
+/** Synchronous best guess for the first render (no network). */
+export function getCachedPlaylists(): PlaylistResult | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY_PLAYLIST);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.channels) && parsed.channels.length > 0) {
-        return parsed;
+      if (parsed && Array.isArray(parsed.channels) && parsed.channels.length > 0 && !(getSampleChoice() === 'yes' && isSamplePreferred())) {
+        return { ...parsed, source: 'user' };
       }
     }
   } catch (_) {}
+  if (getSampleChoice() === 'yes') {
+    const s = getCachedSample();
+    if (s) {
+      const info: PlaylistInfo = { id: SAMPLE_PLAYLIST_ID, name: sampleName(s.country), count: s.channels.length, active: true };
+      return { currentPlaylistName: info.name, allPlaylists: [info], channels: s.channels, source: 'sample', activeId: SAMPLE_PLAYLIST_ID };
+    }
+  }
   return null;
 }
 
-export async function fetchPlaylists(deviceCode: string = getDeviceId()): Promise<{ currentPlaylistName: string; allPlaylists: PlaylistInfo[]; channels: Channel[] }> {
-  console.log(`[DEBUG] fetchPlaylists çağrıldı. Cihaz Kodu: ${deviceCode}`);
-
+async function fetchUserPlaylist(deviceCode: string): Promise<PlaylistResult | null> {
   for (const baseUrl of PORTAL_ENDPOINTS) {
     try {
       const url = `${baseUrl}/api/get-playlist?code=${encodeURIComponent(deviceCode)}`;
-      console.log(`[DEBUG] Portal sorgulanıyor: ${url}`);
-      
       // AbortController is missing on older webOS (Chromium < 66): fall back to a timeout race
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -142,84 +142,86 @@ export async function fetchPlaylists(deviceCode: string = getDeviceId()): Promis
           reject(new Error('timeout'));
         }, 2500);
       });
-
       const res = await Promise.race([
         fetch(url, controller ? { signal: controller.signal } : {}),
         timeout
       ]);
       clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`[DEBUG] Portal yanıtı başarılı:`, {
-          ok: data.ok,
-          name: data.name,
-          channelCount: data.channels ? data.channels.length : 0
-        });
-
-        if (data.ok && Array.isArray(data.channels) && data.channels.length > 0) {
-          // Eğer aktif liste GitHub listesi ise ve server'da sadece placeholder varsa GitHub'dan al
-          let activeChannels = data.channels;
-          if (data.id === 'gh_tr' && data.channels.length <= 10) {
-            const ghChannels = await getGithubTRChannels();
-            activeChannels = ghChannels;
-          }
-
-          let plList: PlaylistInfo[] = data.allPlaylists || [];
-          // GitHub listesinin her zaman allPlaylists içinde olduğundan emin ol
-          if (!plList.some(p => p.id === 'gh_tr')) {
-            plList.unshift({
-              id: 'gh_tr',
-              name: 'Varsayılan TR Yayınları (GitHub)',
-              count: 85,
-              active: data.id === 'gh_tr'
-            });
-          }
-
-          // Kanallardaki bozuk UTF-8 karakterlerini (U+FFFD ve U+FEFF) temizle
-          const cleanedChannels = activeChannels.map((ch: Channel) => ({
-            ...ch,
-            name: ch.name ? ch.name.replace(/[\uFFFD\uFEFF]/g, '').replace(/\s+/g, ' ').trim() : '',
-            category: ch.category ? ch.category.replace(/[\uFFFD\uFEFF]/g, '').replace(/\s+/g, ' ').trim() : 'Genel'
-          }));
-
-          const result = {
-            currentPlaylistName: (data.name || 'Yüklü IPTV Listesi').replace(/[\uFFFD\uFEFF]/g, '').trim(),
-            allPlaylists: plList,
-            channels: cleanedChannels
-          };
-
-          // Hızlı açılış için localStorage'a kaydet
-          try {
-            localStorage.setItem(CACHE_KEY_PLAYLIST, JSON.stringify(result));
-          } catch (_) {}
-
-          return result;
-        }
-      } else {
-        console.warn(`[DEBUG] Portal yanıt vermedi: HTTP ${res.status} (${baseUrl})`);
+      if (!res.ok) {
+        console.warn(`[DEBUG] Portal HTTP ${res.status} (${baseUrl})`);
+        continue;
       }
+      const data = await res.json();
+      // Only playlists the user added through the pairing portal count; the portal placeholder is ignored.
+      const plList: PlaylistInfo[] = (Array.isArray(data.allPlaylists) ? data.allPlaylists : [])
+        .filter((p: PlaylistInfo) => p && p.id !== PORTAL_PLACEHOLDER_ID);
+      if (data.ok && data.id !== PORTAL_PLACEHOLDER_ID && Array.isArray(data.channels) && data.channels.length > 0) {
+        const channels = data.channels.map((ch: Channel) => ({
+          ...ch,
+          name: cleanText(ch.name, ''),
+          category: cleanText(ch.category, 'General')
+        }));
+        const result: PlaylistResult = {
+          currentPlaylistName: cleanText(data.name, 'My playlist'),
+          allPlaylists: plList,
+          channels,
+          source: 'user',
+          activeId: data.id
+        };
+        try { localStorage.setItem(CACHE_KEY_PLAYLIST, JSON.stringify(result)); } catch (_) {}
+        return result;
+      }
+      // Portal reachable but the user has no playlist (anymore)
+      try { localStorage.removeItem(CACHE_KEY_PLAYLIST); } catch (_) {}
+      return null;
     } catch (err) {
-      console.debug(`[DEBUG] Portal bağlantı denemesi başarısız (${baseUrl}):`, err);
+      console.debug(`[DEBUG] Portal unreachable (${baseUrl}):`, err);
     }
   }
+  // Portal unreachable: keep using the last known paired playlist
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PLAYLIST);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.channels) && parsed.channels.length > 0) return { ...parsed, source: 'user' };
+    }
+  } catch (_) {}
+  return null;
+}
 
-  // Eğer sunucuda özel liste henüz atanmamışsa veya erişilemiyorsa:
-  // Önce yerel önbelleğe bak
-  const localCached = getCachedPlaylists();
-  if (localCached) {
-    return localCached;
+/**
+ * Priority: 1) playlist the user added through the pairing portal,
+ * 2) the opt-in sample public list for the TV's country (or when the user picked it explicitly),
+ * 3) built-in royalty-free demo streams (also used when the sample list is unavailable).
+ */
+export async function fetchPlaylists(deviceCode: string = getDeviceId()): Promise<PlaylistResult> {
+  const user = await fetchUserPlaylist(deviceCode);
+  const sampleOn = getSampleChoice() === 'yes';
+  const userLists = user ? user.allPlaylists : [];
+
+  if (user && !(sampleOn && isSamplePreferred())) {
+    const all = userLists.map(p => ({ ...p, active: p.id === user.activeId }));
+    if (sampleOn) all.push({ id: SAMPLE_PLAYLIST_ID, name: sampleName(detectCountry()), count: 0, active: false });
+    return { ...user, allPlaylists: all };
   }
 
-  // Fallback: GitHub Açık Kaynak
-  console.log(`[DEBUG] Portalda liste bulunamadı, fallback GitHub TR listesi çekiliyor...`);
-  const ghChannels = await getGithubTRChannels();
-  const fallbackResult = {
-    currentPlaylistName: 'Varsayılan TR Yayınları (GitHub)',
-    allPlaylists: [{ id: 'gh_tr', name: 'Varsayılan TR Yayınları (GitHub)', count: ghChannels.length, active: true }],
-    channels: ghChannels
-  };
-  return fallbackResult;
+  if (sampleOn) {
+    const s = await loadSampleChannels();
+    if (s.ok) {
+      const info: PlaylistInfo = { id: SAMPLE_PLAYLIST_ID, name: sampleName(s.country), count: s.channels.length, active: true };
+      return {
+        currentPlaylistName: info.name,
+        allPlaylists: [...userLists.map(p => ({ ...p, active: false })), info],
+        channels: s.channels,
+        source: 'sample',
+        activeId: SAMPLE_PLAYLIST_ID
+      };
+    }
+  }
+  if (user) {
+    return { ...user, allPlaylists: userLists.map(p => ({ ...p, active: p.id === user.activeId })) };
+  }
+  return demoResult(userLists);
 }
 
 export async function switchPlaylistOnServer(deviceCode: string, playlistId: string): Promise<boolean> {
